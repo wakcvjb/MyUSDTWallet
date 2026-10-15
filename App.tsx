@@ -20,13 +20,8 @@ import {
   hasExistingWallet,
   createWallet,
   getMnemonic,
-  getKaminoApy,
-  getKaminoDeposit,
-  depositToKamino,
-  withdrawFromKamino,
   getBillRecords,
   addBillRecord,
-  checkForInterest,
   BillRecord,
 } from './wallet';
 
@@ -72,10 +67,6 @@ export default function App() {
   const [status, setStatus] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [bills, setBills] = useState<BillRecord[]>([]);
-  const [kaminoApy, setKaminoApy] = useState(0);
-  const [kaminoDeposit, setKaminoDeposit] = useState('0');
-  const [depositAmount, setDepositAmount] = useState('');
-  const [showDeposit, setShowDeposit] = useState(false);
 
   const loadAll = useCallback(async () => {
     try {
@@ -90,15 +81,6 @@ export default function App() {
         }
       }
       setBalances(b);
-      try {
-        const apy = await getKaminoApy();
-        setKaminoApy(apy);
-        const dep = await getKaminoDeposit();
-        setKaminoDeposit(dep);
-        await checkForInterest(Date.now() - 3600000);
-      } catch {
-        setKaminoApy(0);
-      }
       const rec = await getBillRecords();
       setBills(rec);
     } catch (e: any) {
@@ -166,31 +148,6 @@ export default function App() {
     }
   }
 
-  async function handleDeposit() {
-    if (!depositAmount) return;
-    try {
-      setStatus('存入中...');
-      await depositToKamino(depositAmount);
-      setStatus('已存入');
-      setDepositAmount('');
-      setShowDeposit(false);
-      await loadAll();
-    } catch (e: any) {
-      setStatus('错误: ' + e.message);
-    }
-  }
-
-  async function handleWithdraw() {
-    try {
-      setStatus('取出中...');
-      await withdrawFromKamino(kaminoDeposit);
-      setStatus('已取出');
-      await loadAll();
-    } catch (e: any) {
-      setStatus('错误: ' + e.message);
-    }
-  }
-
   function totalValue() {
     let sum = 0;
     for (const t of TOKENS) {
@@ -198,9 +155,6 @@ export default function App() {
       const price = prices[t.symbol]?.[currency] || 0;
       sum += bal * price;
     }
-    const kd = parseFloat(kaminoDeposit || '0');
-    const usdtPrice = prices['USDT']?.[currency] || 0;
-    sum += kd * usdtPrice;
     return sum.toFixed(2);
   }
 
@@ -295,41 +249,13 @@ export default function App() {
         <Text style={styles.cardTitle}>生息</Text>
         <View style={styles.apyRow}>
           <Text style={styles.apyLabel}>昨日 APY</Text>
-          <Text style={styles.apyValue}>{kaminoApy.toFixed(2)}%</Text>
+          <Text style={styles.apyValue}>0.00%</Text>
         </View>
         <View style={styles.apyRow}>
           <Text style={styles.apyLabel}>已存入</Text>
-          <Text style={styles.apyValue}>{kaminoDeposit} USDT</Text>
+          <Text style={styles.apyValue}>0 USDT</Text>
         </View>
-        {showDeposit ? (
-          <View>
-            <TextInput
-              style={styles.input}
-              placeholder="存入金额 (USDT)"
-              placeholderTextColor="#666"
-              value={depositAmount}
-              onChangeText={setDepositAmount}
-              keyboardType="numeric"
-            />
-            <TouchableOpacity style={styles.button} onPress={handleDeposit}>
-              <Text style={styles.buttonText}>确认存入</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.buttonSecondary} onPress={() => setShowDeposit(false)}>
-              <Text style={styles.buttonText}>取消</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View>
-            <TouchableOpacity style={styles.button} onPress={() => setShowDeposit(true)}>
-              <Text style={styles.buttonText}>存入生息</Text>
-            </TouchableOpacity>
-            {parseFloat(kaminoDeposit) > 0 && (
-              <TouchableOpacity style={styles.buttonSecondary} onPress={handleWithdraw}>
-                <Text style={styles.buttonText}>全部取出</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
+        <Text style={styles.emptyText}>生息模块待接入</Text>
       </View>
 
       <View style={styles.card}>
